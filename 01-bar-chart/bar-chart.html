@@ -22,6 +22,7 @@
             border-radius: 10px;
 
         }
+
     </style>
 </head>
 
@@ -1169,6 +1170,16 @@
         }
 
         function createSVG(data) {
+
+            const padding = 20
+
+            const yScale = d3.scaleLinear()
+            yScale.domain([0, d3.max(data, d => d[1])])
+            yScale.range([padding, h - padding * 2])
+
+            const xScale = d3.scaleLinear()
+            xScale.domain([0, d3.max(data, (d, i) => i)])
+            xScale.range([padding, w - padding])
             const svg = d3.select("body")
                 .append("svg")
                 .attr("width", w)
@@ -1179,11 +1190,12 @@
                 .data(data)
                 .enter()
                 .append("rect")
-                .attr("x", (d, i) => i * 5)
-                .attr("y", 0)
-                .attr("width", 3)
+                .attr('fill','rgb(6, 49, 206)')
+                .attr("x", (d, i) => xScale(i))
+                .attr("y", d => h - yScale(d[1]) - padding)
+                .attr("width", 1)
                 .attr("height", (d, i) => {
-                    return d[1] * 0.5
+                    return yScale(d[1])
                 });
         }
 
