@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bar chart</title>
+    <style>
+        body {
+            padding: 0px;
+            margin: 0px;
+            background-color: rgb(230, 230, 230);
+        }
+
+        #container {
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #title {
+            font-family: Arial, Helvetica, sans-serif;
+            font-weight: bold;
+            font-size: 44px;
+            text-align: center;
+        }
+
+        #bar-chart {
+            padding: 20px;
+            margin: 20px;
+            background-color: white;
+            border-radius: 20px;
+        }
+
+        .bar:hover {
+            fill: orange
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div id="bar-chart">
+            <div id="title">Scatter plot graph</div>
+            <div id="svg"></div>
+            <div id="detail"></div>
+        </div>
+
+    </div>
+    <script src="./js/d3.js"></script>
+    <script>
+
+
+
+        let url = './data/cyclist-data.json'
+
+        //请求数据并调用 SVG 函数
+        fetch(url)
+            .then(response => response.json())
+            .then(object => createSVG(object))
+        // .then(object => console.log(object.data))
+
+
+        // 定义 bar chart
+        const w = 1000;
+        const h = 500;
+
+        function createSVG(data) {
+
+            const xPadding = 40
+            const yPadding = 20
+
+            const year = data.map(item => new Date(item.Year))
+            const time = data.map(item => new Date(item.Time))
+
+            console.log('year', year, 'time', time)
+
+            const xScale = d3.scaleTime()
+            xScale.domain([d3.min(year), d3.max(year)])
+            xScale.range([xPadding, w])
+
+            const yScale = d3.scaleTime()
+            yScale.domain([d3.min(time), d3.max(time)])
+            yScale.range([h - yPadding, 0])
+
+
+
+
+
+            const yAxis = d3.axisLeft(yScale);
+            const xAxis = d3.axisBottom(xScale);
+
+            const tooltip = d3.select('#detail')
+                .append('div')
+                .attr('id', 'tooltip')
+                .attr('style', 'display:none')
+
+            const svg = d3.select("#svg")
+                .append("svg")
+                .attr("width", w)
+                .attr("height", h)
+
+            svg.selectAll("rect")
+                .data(data)
+                .enter()
+                .append("circle")
+
+                .attr('data-date', d => d[0])
+                .attr('data-gdp', d => d[1])
+
+
+                .attr("cx", (d, i) => d[0])
+                .attr("cy", (d, i) => h - xScale(d[1]))
+                .attr("r", 5)
+
+                .attr("width", 3)
+                .attr("height", (d, i) => h - yScale(d[1]) - yPadding)
+
+                .on('mouseover', (e) => tooltip.attr('style', 'display:block').attr('data-date', e.target.dataset.date).text(`date:${e.target.dataset.date}\nGDP:${e.target.dataset.gdp}`))
+                .on('mouseout', (e) => tooltip.attr('style', 'display:none').text(''))
+
+
+
+            svg.append("g")
+                .attr('id', 'x-axis')
+                .attr("transform", "translate(0, " + (h - yPadding) + ")")
+                .call(xAxis);
+
+            svg.append("g")
+                .attr('id', 'y-axis')
+                .attr("transform", "translate(" + xPadding + ", 0)")
+                .call(yAxis);
+
+
+        }
+
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
