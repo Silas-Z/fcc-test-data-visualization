@@ -14,7 +14,7 @@
         }
 
         #container {
-
+            position: relative;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -37,6 +37,10 @@
 
         .bar:hover {
             fill: orange
+        }
+        #detail {
+            position:absolute
+        
         }
     </style>
 </head>
@@ -96,7 +100,7 @@
             const tooltip = d3.select('#detail')
                 .append('div')
                 .attr('id', 'tooltip')
-                .attr('style','display:none')
+                .attr('style', 'display:none')
 
             const svg = d3.select("#svg")
                 .append("svg")
@@ -120,8 +124,8 @@
                 .attr("width", 3)
                 .attr("height", (d, i) => h - yScale(d[1]) - yPadding)
 
-                .on('mouseover', (e) => tooltip.attr('style','display:block').attr('data-date',e.target.dataset.date).text( `date:${e.target.dataset.date}\nGDP:${e.target.dataset.gdp}`))
-                .on('mouseout', (e) => tooltip.attr('style','display:none').text( ''))
+                .on('mouseover', (e) => tooltip.attr('style', 'display:block').attr('data-date', e.target.dataset.date).text(`Date:${e.target.dataset.date}\nGDP:${e.target.dataset.gdp}`))
+                .on('mouseout', (e) => tooltip.attr('style', 'display:none').text(''))
 
 
 
