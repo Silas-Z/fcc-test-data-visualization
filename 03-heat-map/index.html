@@ -41,7 +41,6 @@
         }
 
         .cell {
-            fill: rgb(12, 12, 167);
             opacity: 0.75;
         }
 
@@ -66,7 +65,7 @@
         </div>
 
     </div>
-    
+
     <script src="../js/d3.js"></script>
     <script>
 
@@ -15845,23 +15844,22 @@
 
         let base = dataset.baseTemperature
         let data = dataset.monthlyVariance
-        data.map(item => item.temperature = (base + item.variance).toFixed(2))
+        data.map(item => item.temperature = parseFloat((base + item.variance).toFixed(2)))
 
-        console.log(' data', data)
-
-
-
-
-        // define square
+        // SVG square
         const w = 1200;
         const h = 500;
 
+        // SVG square
+        const legendW = 300;
+        const legendH = 100;
+
         // define color
-        const colder = ''
-        const cold = ''
-        const normal = ''
-        const hot = '#F5B31D'
-        const hotter = '#D15B3D'
+        const colder = '#6299D0'
+        const cold = '#73C6B8'
+        const normal = '#84C86B'
+        const hot = '#E5D963'
+        const hotter = '#F1AB56'
 
 
         function createSVG(data) {
@@ -15876,6 +15874,7 @@
 
             const year = data.map(item => item.year)
             const month = data.map(item => item.month)
+            const temperature = data.map(item => item.temperature)
 
             const minYear = d3.min(year)
             const maxYear = d3.max(year) + yearOffset
@@ -15883,9 +15882,28 @@
             const minMonth = d3.min(month)
             const maxMonth = d3.max(month) + monthOffset
 
+            const minTemperature = d3.min(temperature)
+            const maxTemperature = d3.max(temperature)
+            const perTemperatureSection = (maxTemperature - minTemperature) / 5
+
+            console.log('minTemperature', minTemperature, 'maxTemperature', maxTemperature, 'perTemperatureSection', perTemperatureSection,)
 
             const perRectWidth = w / (maxYear - minYear) + 1
             const perRectHeight = h / (maxMonth - minMonth) + 1
+
+            function setColor(temp) {
+                if (temp < minTemperature + perTemperatureSection) {
+                    return colder
+                } else if (temp < minTemperature + perTemperatureSection * 2) {
+                    return cold
+                } else if (temp < minTemperature + perTemperatureSection * 3) {
+                    return normal
+                } else if (temp < minTemperature + perTemperatureSection * 4) {
+                    return hot
+                } else {
+                    return hotter
+                }
+            }
 
 
             const xScale = d3.scaleLinear()
@@ -15893,7 +15911,7 @@
             xScale.range([xPadding, w])
 
             const yScale = d3.scaleBand()
-            yScale.domain([0,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,])
+            yScale.domain([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,])
             yScale.range([0, h - yPadding])
 
 
@@ -15920,20 +15938,21 @@
                 .append("rect")
 
                 .attr('class', 'cell')
+                .attr('fill', (d, i) => setColor(d.temperature))
                 .attr('data-month', (d, i) => d.month - 1)
                 .attr('data-year', (d, i) => d.year)
                 .attr('data-temp', (d, i) => d.temperature)
 
 
                 .attr("x", (d, i) => xScale(d.year))
-                .attr("y", (d, i) => yScale(d.month-1))
+                .attr("y", (d, i) => yScale(d.month - 1))
 
                 .attr("width", perRectWidth)
                 .attr("height", perRectHeight)
 
                 .append('title')
                 .attr('id', 'tooltip')
-                .text(d => `Year: ${d.year}  Month: ${d.month}\nVariance: ${d.variance}`)
+                .text(d => `Year: ${d.year}  Month: ${d.month}  Temperature: ${d.Temperature}\nVariance: ${d.variance}`)
 
 
 
@@ -15958,7 +15977,63 @@
 
         }
 
-        createSVG(dataset.monthlyVariance)
+        function createLegend(data) {
+
+            const temperature = data.map(item => item.temperature)
+            const minTemperature = d3.min(temperature)
+            const maxTemperature = d3.max(temperature)
+            const perTemperatureSection = (maxTemperature - minTemperature) / 5
+
+            const tempLegend = [
+                minTemperature,
+                minTemperature + perTemperatureSection,
+                minTemperature + perTemperatureSection * 2,
+                minTemperature + perTemperatureSection * 3,
+                minTemperature + perTemperatureSection * 4,
+            ]
+
+            const xPadding = 60;
+            const yPadding = 20;
+
+            const svg = d3.select("#legend")
+                .append("svg")
+                .attr("width", legendW)
+                .attr("height", legendH)
+
+                .text('Legend')
+
+            const xScale = d3.scaleLinear()
+            xScale.domain(tempLegend)
+            xScale.range([xPadding, legendW])
+
+            svg.selectAll("rect")
+                .data(tempLegend)
+                .enter()
+                .append("rect")
+
+                .attr('class', 'legend-cell')
+                .attr('fill', (d, i) => setColor(d))
+                .attr('data-temp', (d, i) => d)
+
+                .attr("x", (d, i) => xScale(d))
+                .attr("y", (d, i) => i * 50)
+
+                .attr("width", 50)
+                .attr("height", 50)
+
+
+            const xAxis = d3.axisBottom(xScale)
+            svg.append("g")
+                .attr('id', 'x-axis-legend')
+                .attr("transform", "translate(0, " + (h - yPadding) + ")")
+                .call(xAxis);
+
+
+
+        }
+
+        // createSVG(data)
+        createLegend(data)
 
 
 
