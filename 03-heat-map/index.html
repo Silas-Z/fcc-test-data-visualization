@@ -14,12 +14,11 @@
         }
 
         #container {
-
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            position: relative;
+            
         }
 
         #title {
@@ -38,6 +37,7 @@
             margin: 20px;
             background-color: white;
             border-radius: 20px;
+            position: relative;
         }
 
         .cell {
@@ -49,7 +49,12 @@
         }
 
         #detail {
-            position: absolute
+            position: absolute;
+            right:20px
+        }
+
+        #legend-container {
+            padding-left: 60px;
         }
     </style>
 </head>
@@ -61,7 +66,10 @@
             <h3 id="description">Heat Map Description</h3>
             <div id="svg"></div>
             <div id="detail"></div>
-            <div id="legend"></div>
+            <div id="legend-container">
+                <h3>The color of the temperature</h3>
+                <div id="legend"></div>
+            </div>
         </div>
 
     </div>
@@ -15852,7 +15860,7 @@
 
         // SVG square
         const legendW = 300;
-        const legendH = 100;
+        const legendH = 50;
 
         // define color
         const colder = '#6299D0'
@@ -15927,6 +15935,11 @@
                     return format(date);
                 })
 
+            const tooltip = d3.select('#detail')
+                .append('div')
+                .attr('id', 'tooltip')
+                .attr('style', 'display:none')
+
             const svg = d3.select("#svg")
                 .append("svg")
                 .attr("width", w)
@@ -15950,20 +15963,18 @@
                 .attr("width", perRectWidth)
                 .attr("height", perRectHeight)
 
-                .append('title')
-                .attr('id', 'tooltip')
-                .text(d => `Year: ${d.year}  Month: ${d.month}  Temperature: ${d.Temperature}\nVariance: ${d.variance}`)
+
+
+                // .text(d => `Year: ${d.year}  Month: ${d.month}  Temperature: ${d.Temperature}\nVariance: ${d.variance}`)
 
 
 
-            // .on('mouseover', (e) => tooltip
-            //     .attr('style', 'display:block')
-            //     .attr('data-year', e.target.dataset.xvalue)
-            //     .text(`Year:${e.target.dataset.xvalue} \nTime:${e.target.dataset.time}`))
-            // .on('mouseout', (e) => tooltip.attr('style', 'display:none').text(''))
+                .on('mouseover', (e) => tooltip
+                    .attr('style', 'display:block')
+                    .attr('data-year', e.target.dataset.year)
+                    .text(`Year: ${e.target.dataset.year} Month: ${e.target.dataset.month}\nTemperature: ${e.target.dataset.temp}`))
+                .on('mouseout', (e) => tooltip.attr('style', 'display:none').text(''))
 
-            // svg.append('div')
-            //     .attr('id', 'legend')
 
             svg.append("g")
                 .attr('id', 'x-axis')
@@ -15983,7 +15994,9 @@
             const minTemperature = d3.min(temperature)
             const maxTemperature = d3.max(temperature)
             const perTemperatureSection = (maxTemperature - minTemperature) / 5
+            console.log('perTemperatureSection', perTemperatureSection, 'maxTemperature', maxTemperature)
 
+            // set Legend array
             const tempLegend = [
                 minTemperature,
                 minTemperature + perTemperatureSection,
@@ -15992,7 +16005,31 @@
                 minTemperature + perTemperatureSection * 4,
             ]
 
-            const xPadding = 60;
+            const tempLegendForXAxis = [
+                minTemperature,
+                minTemperature + perTemperatureSection,
+                minTemperature + perTemperatureSection * 2,
+                minTemperature + perTemperatureSection * 3,
+                minTemperature + perTemperatureSection * 4,
+                minTemperature + perTemperatureSection * 5,
+            ]
+            console.log('tempLegend', tempLegend)
+
+            function setColor(temp) {
+                if (temp < minTemperature + perTemperatureSection) {
+                    return colder
+                } else if (temp < minTemperature + perTemperatureSection * 2) {
+                    return cold
+                } else if (temp < minTemperature + perTemperatureSection * 3) {
+                    return normal
+                } else if (temp < minTemperature + perTemperatureSection * 4) {
+                    return hot
+                } else {
+                    return hotter
+                }
+            }
+
+            const xPadding = 0;
             const yPadding = 20;
 
             const svg = d3.select("#legend")
@@ -16003,8 +16040,10 @@
                 .text('Legend')
 
             const xScale = d3.scaleLinear()
-            xScale.domain(tempLegend)
+            xScale.domain([minTemperature, maxTemperature])
             xScale.range([xPadding, legendW])
+
+
 
             svg.selectAll("rect")
                 .data(tempLegend)
@@ -16016,28 +16055,21 @@
                 .attr('data-temp', (d, i) => d)
 
                 .attr("x", (d, i) => xScale(d))
-                .attr("y", (d, i) => i * 50)
+                .attr("y", 0)
 
-                .attr("width", 50)
-                .attr("height", 50)
+                .attr("width", xScale(minTemperature + perTemperatureSection))
+                .attr("height", legendH - yPadding)
 
 
-            const xAxis = d3.axisBottom(xScale)
+            const xAxis = d3.axisBottom(xScale).tickValues(tempLegendForXAxis)
             svg.append("g")
                 .attr('id', 'x-axis-legend')
-                .attr("transform", "translate(0, " + (h - yPadding) + ")")
+                .attr("transform", "translate(0, " + (legendH - yPadding) + ")")
                 .call(xAxis);
-
-
-
         }
 
-        // createSVG(data)
+        createSVG(data)
         createLegend(data)
-
-
-
-
 
     </script>
 </body>
