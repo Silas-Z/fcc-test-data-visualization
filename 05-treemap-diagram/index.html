@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tree Map</title>
+    <style>
+        body {
+            padding: 0px;
+            margin: 0px;
+            background-color: rgb(230, 230, 230);
+        }
+
+        #container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+
+        }
+
+        #title {
+            font-family: Arial, Helvetica, sans-serif;
+            font-weight: bold;
+            font-size: 44px;
+            text-align: center;
+        }
+
+        #description {
+            text-align: center;
+        }
+
+        #chart {
+            padding: 20px;
+            margin: 20px;
+            background-color: white;
+            border-radius: 20px;
+            position: relative;
+        }
+
+        .tile {
+            opacity: 0.75;
+        }
+
+        .tile:hover {
+            opacity: 1;
+        }
+
+        #detail {
+            position: absolute;
+            left: 20px;
+            bottom: 20px;
+        }
+
+        #legend-container {
+            padding-left: 60px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div id="chart">
+            <div id="title">Tree Map</div>
+            <h3 id="description">Video Game Sales</h3>
+            <div id="svg"></div>
+            <div id="legend"></div>
+            <h3>Detail</h3>
+            <div id="detail"></div>
+        </div>
+    </div>
+
+    </div>
+
+    <script src="../js/d3.js"></script>
+    <script src="../js/topojson.js"></script>
+    <script src="../js/fcc/bundle.js"></script>
+    <script>
+
+        // data
+        const data = './data/video-game-sales-data.json';
+
+        // SVG square
+        const w = 1000;
+        const h = 600;
+        const padding = 0;
+
+        const colorScale = d3
+            .scaleOrdinal(d3.schemePaired);
+
+        const svg = d3.select("#svg")
+            .append("svg")
+            .attr("viewBox", `0 0 ${w} ${h}`);
+
+        const tooltip = d3.select('#detail')
+            .append('div')
+            .attr('id', 'tooltip')
+
+        const svgCanvas = svg
+            .append("g")
+            .attr("transform", `translate(${padding}, ${padding})`);
+
+        fetch(data)
+            .then((response) => response.json())
+            .then((json) => createSVG(json));
+
+        function createSVG(data) {
+
+            let hierarchy = d3.hierarchy(data);
+            hierarchy.sum((d) => d.value);
+
+            const treeMap = d3.treemap();
+            const treeMapLayout = treeMap(hierarchy);
+
+            let videoGames = [];
+            for (let i = 0; i < treeMapLayout.children.length; i++) {
+                for (let j = 0; j < treeMapLayout.children[i].children.length; j++) {
+                    videoGames.push(treeMapLayout.children[i].children[j]);
+                }
+            }
+
+
+            svgCanvas
+                .selectAll("rect")
+                .data(videoGames)
+                .enter()
+                .append("rect")
+                .attr("class", "tile")
+                .attr("data-name", (d, i) => d.data.name)
+                .attr("data-category", (d, i) => d.data.category)
+                .attr("data-value", (d, i) => d.data.value)
+                .attr("width", (d, i) => (d.x1 - d.x0) * w)
+                .attr("height", (d, i) => (d.y1 - d.y0) * h)
+                .attr("x", (d, i) => d.x0 * w)
+                .attr("y", (d, i) => d.y0 * h)
+                .attr("fill", (d, i) => colorScale(d.data.category))
+
+                .on('mouseover', (e) => tooltip
+                    .attr('style', 'display:block')
+                    .attr('data-value', e.target.dataset.value)
+                    .text(`name: ${e.target.dataset.name} category: ${e.target.dataset.category}    value: ${e.target.dataset.value}`))
+                .on('mouseout', (e) => tooltip.attr('style', 'display:none').text(''))
+
+
+            let categoriesArr = videoGames.map((item) => item.data.category);
+            let categories = categoriesArr.filter((item, i) => {
+                if (categoriesArr.slice(0, i).indexOf(item) === -1) {
+                    return item;
+                }
+            });
+
+            const legend = d3.select('#legend')
+                .append("svg")
+                .attr("id", "legend")
+                .attr('width', w)
+                .attr('height', 40)
+                .attr('fill', 'black')
+
+            legend
+                .selectAll("rect")
+                .data(categories)
+                .enter()
+                .append("rect")
+                .attr("class", "legend-item")
+                .attr("width", w / (categories.length))
+                .attr("height", 20)
+                .attr("x", (d, i) => i * w / (categories.length))
+                .attr("y", 0)
+                .attr("fill", (d, i) => colorScale(d))
+                .attr("opacity", 0.7);
+
+            legend
+                .selectAll("text")
+                .data(categories)
+                .enter()
+                .append("text")
+                .attr("x", (d, i) => i * w / (categories.length))
+                .attr("y", 40)
+                .text((d, i) => d);
+        }
+        
+    </script>
+</body>
+
+</html>
