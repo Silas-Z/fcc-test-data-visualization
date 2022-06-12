@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heat Map</title>
+    <style>
+        body {
+            padding: 0px;
+            margin: 0px;
+            background-color: rgb(230, 230, 230);
+        }
+
+        #container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+
+        }
+
+        #title {
+            font-family: Arial, Helvetica, sans-serif;
+            font-weight: bold;
+            font-size: 44px;
+            text-align: center;
+        }
+
+        #description {
+            text-align: center;
+        }
+
+        #chart {
+            padding: 20px;
+            margin: 20px;
+            background-color: white;
+            border-radius: 20px;
+            position: relative;
+            width: 80%;
+        }
+
+        .cell {
+            opacity: 0.75;
+        }
+
+        .cell:hover {
+            fill: orange;
+        }
+
+        #detail {
+            position: absolute;
+            left: 20px;
+            bottom:20px;
+        }
+
+        #legend-container {
+            padding-left: 60px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div id="chart">
+            <div id="title">Degrees Map</div>
+            <h3 id="description">Degrees Map in the US</h3>
+            <div id="svg"></div>
+
+            <h3>Detail</h3>
+            <div id="detail"></div>
+        </div>
+    </div>
+
+    </div>
+
+    <script src="../js/d3.js"></script>
+    <script src="../js/topojson.js"></script>
+    <script src="../js/fcc/bundle.js"></script>
+    <script>
+
+
+        // data
+        const mapData = './data/counties.json';
+        const degreeData = './data/for_user_education.json';
+
+
+        // SVG square
+        const w = 1000;
+        const h = 500;
+        const padding = 20;
+
+        const svg = d3.select("#svg")
+            .append("svg")
+            .attr("viewBox", `0 0 ${w} ${h}`);
+
+        const tooltip = d3.select('#detail')
+            .append('div')
+            .attr('id', 'tooltip')
+
+        const svgCanvas = svg
+            .append("g")
+            .attr("transform", `translate(${padding}, ${padding})`);
+
+        const legendValues = {
+            percentage: [3, 24, 35, 66],
+            color: ["#34C759", "#346DC7", "#6E52D6", "#962FBD"],
+            height: 15,
+            width: 30
+        }
+
+        // create legend
+        const legend = svgCanvas
+            .append("g")
+            .attr("id", "legend")
+            .attr("transform", `translate(${w - padding - legendValues.percentage.length * legendValues.width}, 0)`);
+
+
+        legend
+            .selectAll("rect")
+            .data(legendValues.percentage)
+            .enter()
+            .append("rect")
+            .attr("width", legendValues.width)
+            .attr("height", legendValues.height)
+            .attr("x", (d, i) => i * legendValues.width)
+            .attr("y", 0)
+            .attr("fill", (d, i) => legendValues.color[i]);
+
+        legend
+            .selectAll("text")
+            .data(legendValues.percentage)
+            .enter()
+            .append("text")
+            .attr("x", (d, i) => i * legendValues.width)
+            .attr("y", legendValues.height * 2)
+            .style("font-size", "0.6rem")
+            .text((d) => `${d}%`);
+
+        const colorScale = d3
+            .scaleQuantize()
+            .range(legendValues.color);
+
+        fetch(degreeData)
+            .then((response) => response.json())
+            .then((json) => matchData(json));
+
+        function matchData(data) {
+
+            fetch(mapData)
+                .then((response) => response.json())
+                .then((json) => {
+                    for (let i = 0; i < data.length; i++) {
+                        let fips = data[i].fips;
+
+                        let geometries = json.objects.counties.geometries;
+                        for (let j = 0; j < geometries.length; j++) {
+                            let id = geometries[j].id;
+                            if (fips === id) {
+                                geometries[j] = Object.assign({}, geometries[j], data[i]);
+                                break;
+                            }
+                        }
+                    }
+                    return json;
+                })
+                .then((json) => createSVG(json));
+        }
+
+        function createSVG(data) {
+
+
+
+            colorScale.domain([0, d3.max(data.objects.counties.geometries, (d) => d.bachelorsOrHigher)]);
+
+            // translate the map
+            let feature = topojson.feature(data, data.objects.counties);
+            const path = d3
+                .geoPath();
+
+            svgCanvas
+                .selectAll("path")
+                .data(feature.features)
+                .enter()
+                .append("path")
+
+                .attr("d", path)
+                .attr("transform", `scale(1, 0.8)`)
+                .attr("class", "county")
+
+                .attr("data-fips", (d, i) => data.objects.counties.geometries[i].fips)
+                .attr("data-state", (d, i) => data.objects.counties.geometries[i].state)
+                .attr("data-area", (d, i) => data.objects.counties.geometries[i].area_name)
+                .attr("data-education", (d, i) => data.objects.counties.geometries[i].bachelorsOrHigher)
+
+                .attr("fill", (d, i) => colorScale(data.objects.counties.geometries[i].bachelorsOrHigher))
+
+                .on('mouseover', (e) => tooltip
+                    .attr('style', 'display:block')
+                    .attr('data-education', e.target.dataset.education)
+                    .text(`FIPS: ${e.target.dataset.fips}    Area: ${e.target.dataset.area}    State: ${e.target.dataset.state}    Education: ${e.target.dataset.education}`))
+                .on('mouseout', (e) => tooltip.attr('style', 'display:none').text(''))
+
+        }
+
+
+
+    </script>
+</body>
+
+</html>
